@@ -13,6 +13,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+static std::filesystem::path out_dir{"out"};
 static std::filesystem::path gfx_dir;
 
 static astcenc_context* astc_ctx = NULL;
@@ -114,32 +115,33 @@ void repack(const char *filename)
 
     std::filesystem::path fpath(filename);
     auto out_filepath = std::filesystem::proximate(fpath, gfx_dir);
-    out_filepath = "out" / out_filepath.replace_extension(".astc");
+    out_filepath = out_dir / out_filepath.replace_extension(".astc");
 
     auto out_path = out_filepath;
     out_path.remove_filename();
 
+    // Create out path and filestream
     std::filesystem::create_directories(out_path);
-    std::ofstream cached(out_filepath, std::ios::binary);
+    std::ofstream ofs(out_filepath, std::ios::binary);
 
     // write astc header
     uint8_t blks;
-    cached.write((char*)ASTC_MAGIC, sizeof(ASTC_MAGIC));
-    blks = astc_cfg.block_x;        cached.write((char*)&blks, 1);
-    blks = astc_cfg.block_y;        cached.write((char*)&blks, 1);
-    blks = astc_cfg.block_z;        cached.write((char*)&blks, 1);
-    blks = ((width)        & 0xFF); cached.write((char*)&blks, 1);
-    blks = ((width  >> 8)  & 0xFF); cached.write((char*)&blks, 1);
-    blks = ((width  >> 16) & 0xFF); cached.write((char*)&blks, 1);
-    blks = ((height)       & 0xFF); cached.write((char*)&blks, 1);
-    blks = ((height >> 8)  & 0xFF); cached.write((char*)&blks, 1);
-    blks = ((height >> 16) & 0xFF); cached.write((char*)&blks, 1);
-    blks = 1;                       cached.write((char*)&blks, 1);
-    blks = 0;                       cached.write((char*)&blks, 1);
-    blks = 0;                       cached.write((char*)&blks, 1);
+    ofs.write((char*)ASTC_MAGIC, sizeof(ASTC_MAGIC));
+    blks = astc_cfg.block_x;        ofs.write((char*)&blks, 1);
+    blks = astc_cfg.block_y;        ofs.write((char*)&blks, 1);
+    blks = astc_cfg.block_z;        ofs.write((char*)&blks, 1);
+    blks = ((width)        & 0xFF); ofs.write((char*)&blks, 1);
+    blks = ((width  >> 8)  & 0xFF); ofs.write((char*)&blks, 1);
+    blks = ((width  >> 16) & 0xFF); ofs.write((char*)&blks, 1);
+    blks = ((height)       & 0xFF); ofs.write((char*)&blks, 1);
+    blks = ((height >> 8)  & 0xFF); ofs.write((char*)&blks, 1);
+    blks = ((height >> 16) & 0xFF); ofs.write((char*)&blks, 1);
+    blks = 1;                       ofs.write((char*)&blks, 1);
+    blks = 0;                       ofs.write((char*)&blks, 1);
+    blks = 0;                       ofs.write((char*)&blks, 1);
 
     // write astc payload
-    cached.write((char*)payload, payload_len);
+    ofs.write((char*)payload, payload_len);
 
 #if 0
     stbi_write_png("example.png", width, height, 4, imageData, width * 4);
@@ -176,7 +178,8 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::printf("Usage: celeste-repacker <install-dir>\n");
+        std::printf("Usage: celeste-repacker <install-dir> [--install]\n");
+        std::printf("  --install Output ASTC files in the same directory.\n");
         return -1;
     }
 
@@ -185,6 +188,15 @@ int main(int argc, char *argv[])
     {
         std::printf("ERROR: Path is not a directory.\n");
         return -1;
+    }
+
+    // If using install parameter, then output files into the same folder
+    if (argc >= 3)
+    {
+        if (std::string_view(argv[2]) == "--install")
+        {
+            out_dir = gfx_dir;
+        }
     }
 
     struct timespec start, end;
