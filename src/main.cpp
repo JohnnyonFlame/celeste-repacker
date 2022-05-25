@@ -29,7 +29,7 @@ static const astcenc_swizzle swizzle {
 uint32_t get_astc_payload_length(int w, int h)
 {
     unsigned int block_count_x = (w + BLOCK_X - 1) / BLOCK_X;
-	unsigned int block_count_y = (h + BLOCK_Y - 1) / BLOCK_Y;
+    unsigned int block_count_y = (h + BLOCK_Y - 1) / BLOCK_Y;
 
     return block_count_x * block_count_y * 16;
 }
@@ -93,7 +93,7 @@ void repack(const char *filename)
     uint32_t payload_len = get_astc_payload_length(width, height);
     uint8_t *payload = new uint8_t[payload_len];
 
-	void *slices[] = { (void*)imageData };
+    void *slices[] = { (void*)imageData };
     astcenc_image image = {};
     image.dim_x = width;
     image.dim_y = height;
@@ -116,10 +116,10 @@ void repack(const char *filename)
     astcenc_error status = astcenc_compress_reset(astc_ctx);
     if (status != ASTCENC_SUCCESS)
 	{
-		std::printf("ERROR: Failed to compress '%s': %s\n", path.filename().c_str(), astcenc_get_error_string(status));
+        std::printf("ERROR: Failed to compress '%s': %s\n", path.filename().c_str(), astcenc_get_error_string(status));
         delete imageData;
         delete payload;
-		
+
         return;
 	}
 
