@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include "astcenc.h"
+#include "main.hpp"
 #include "util.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -19,11 +20,7 @@ static std::filesystem::path gfx_dir;
 static astcenc_context* astc_ctx = NULL;
 static astcenc_config astc_cfg = {};
 
-#define BLOCK_X 4
-#define BLOCK_Y 4
-#define ASTC_PROFILE ASTCENC_PRF_LDR
 static int NUM_JOBS = 1;
-static uint8_t ASTC_MAGIC[] = {0x13, 0xAB, 0xA1, 0x5C};
 
 static const astcenc_swizzle swizzle {
     ASTCENC_SWZ_R, ASTCENC_SWZ_G, ASTCENC_SWZ_B, ASTCENC_SWZ_A
@@ -39,6 +36,19 @@ uint32_t get_astc_payload_length(int w, int h)
 
 void repack(const char *filename)
 {
+    std::filesystem::path fpath(filename);
+    auto out_filepath = std::filesystem::proximate(fpath, gfx_dir);
+    out_filepath = out_dir / out_filepath.replace_extension(".astc");
+
+    auto out_path = out_filepath;
+    out_path.remove_filename();
+
+    // If this texture already exists, let's ignore it.
+    if (std::filesystem::exists(out_filepath))
+    {
+        return;
+    }
+
     // Celeste texture data is stored in an RLE encoded RAW format.
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -113,32 +123,21 @@ void repack(const char *filename)
         return;
 	}
 
-    std::filesystem::path fpath(filename);
-    auto out_filepath = std::filesystem::proximate(fpath, gfx_dir);
-    out_filepath = out_dir / out_filepath.replace_extension(".astc");
-
-    auto out_path = out_filepath;
-    out_path.remove_filename();
-
     // Create out path and filestream
     std::filesystem::create_directories(out_path);
     std::ofstream ofs(out_filepath, std::ios::binary);
 
+    // populate astc header
+    struct astc_header header = {.magic = {0x13, 0xAB, 0xA1, 0x5C}};
+    header.block_x = astc_cfg.block_x;
+    header.block_y = astc_cfg.block_y;
+    header.block_z = astc_cfg.block_z;
+    header.dim_x = width;
+    header.dim_y = height;
+    header.dim_z = 1;
+
     // write astc header
-    uint8_t blks;
-    ofs.write((char*)ASTC_MAGIC, sizeof(ASTC_MAGIC));
-    blks = astc_cfg.block_x;        ofs.write((char*)&blks, 1);
-    blks = astc_cfg.block_y;        ofs.write((char*)&blks, 1);
-    blks = astc_cfg.block_z;        ofs.write((char*)&blks, 1);
-    blks = ((width)        & 0xFF); ofs.write((char*)&blks, 1);
-    blks = ((width  >> 8)  & 0xFF); ofs.write((char*)&blks, 1);
-    blks = ((width  >> 16) & 0xFF); ofs.write((char*)&blks, 1);
-    blks = ((height)       & 0xFF); ofs.write((char*)&blks, 1);
-    blks = ((height >> 8)  & 0xFF); ofs.write((char*)&blks, 1);
-    blks = ((height >> 16) & 0xFF); ofs.write((char*)&blks, 1);
-    blks = 1;                       ofs.write((char*)&blks, 1);
-    blks = 0;                       ofs.write((char*)&blks, 1);
-    blks = 0;                       ofs.write((char*)&blks, 1);
+    ofs.write(header.data, sizeof(header.data));
 
     // write astc payload
     ofs.write((char*)payload, payload_len);
