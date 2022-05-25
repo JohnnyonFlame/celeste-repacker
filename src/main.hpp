@@ -2,7 +2,7 @@
 
 #define BLOCK_X 4
 #define BLOCK_Y 4
-#define ASTC_PROFILE ASTCENC_PRF_LDR
+#define ASTC_QUALITY ASTCENC_PRE_FAST
 
 struct astc_header {
     union {

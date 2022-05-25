@@ -156,7 +156,7 @@ void repack(const char *filename)
 int astcenc_init()
 {
     astcenc_error status;
-    status = astcenc_config_init(ASTCENC_PRF_LDR, BLOCK_X, BLOCK_Y, 1, ASTC_PROFILE, 0, &astc_cfg);
+    status = astcenc_config_init(ASTCENC_PRF_LDR, BLOCK_X, BLOCK_Y, 1, ASTC_QUALITY, 0, &astc_cfg);
     if (status != ASTCENC_SUCCESS)
     {
         std::printf("ERROR: astcenc_config_init failed: %s\n", astcenc_get_error_string(status));
